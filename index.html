@@ -60,11 +60,39 @@
         .piece-item:nth-child(even) {
             background-color: #f9f9f9;
         }
+        .sheet-container {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .sheet-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
         .cutting-diagram {
-            margin-top: 20px;
+            margin-top: 10px;
             border: 2px solid #333;
             position: relative;
             background-color: #f8f8f8;
+        }
+        .pieces-not-fitting {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+        }
+        .pieces-not-fitting h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .pieces-not-fitting ul {
+            margin: 0;
+            padding-left: 20px;
         }
         .piece-rect {
             position: absolute;
@@ -193,8 +221,8 @@
             <h2>All Required Pieces</h2>
             <div id="pieceList" class="piece-list"></div>
             
-            <h2>Sheet Layout (2800 x 2070 mm)</h2>
-            <div id="cuttingDiagram" class="cutting-diagram"></div>
+            <h2>Sheet Layouts (2800 x 2070 mm)</h2>
+            <div id="sheetsContainer"></div>
             <div id="sheetInfo" class="sheet-info"></div>
         </div>
     </div>
@@ -280,10 +308,10 @@
             displayMaterialSummary(materialSummary);
             displayAllPieces(allPieces);
             
-            // Optimize layout for 18mm pieces
+            // Optimize layout for 18mm pieces across multiple sheets
             const pieces18mm = allPieces.filter(p => p.thickness === 18);
-            const layout = optimizeLayout(pieces18mm, 2800, 2070, kerf);
-            displayCuttingDiagram(layout, 2800, 2070);
+            const sheets = optimizeMultipleSheets(pieces18mm, 2800, 2070, kerf);
+            displayMultipleSheets(sheets, 2800, 2070);
             
             // Show results
             document.getElementById('results').style.display = 'block';
@@ -391,32 +419,43 @@
             });
         }
         
-        function optimizeLayout(pieces, sheetWidth, sheetHeight, kerf) {
+        function optimizeMultipleSheets(pieces, sheetWidth, sheetHeight, kerf) {
+            const sheets = [];
+            let remainingPieces = [...pieces];
+            
+            // Sort pieces by area descending for better packing
+            remainingPieces.sort((a, b) => {
+                const areaA = a.width * a.height;
+                const areaB = b.width * b.height;
+                if (areaB !== areaA) return areaB - areaA;
+                return b.height - a.height;
+            });
+            
+            while (remainingPieces.length > 0) {
+                const sheet = packSheet(remainingPieces, sheetWidth, sheetHeight, kerf);
+                sheets.push(sheet);
+                
+                // Remove pieces that were packed from remaining pieces
+                const packedPieceNames = sheet.pieces.map(p => p.name);
+                remainingPieces = remainingPieces.filter(p => !packedPieceNames.includes(p.name));
+            }
+            
+            return sheets;
+        }
+        
+        function packSheet(pieces, sheetWidth, sheetHeight, kerf) {
             const layout = [];
             let currentX = 0;
             let currentY = 0;
             let rowHeight = 0;
             
-            // Sort pieces by height descending, then by width descending
-            const sortedPieces = [...pieces].sort((a, b) => {
-                if (b.height !== a.height) return b.height - a.height;
-                return b.width - a.width;
-            });
-            
-            sortedPieces.forEach(piece => {
+            for (let i = 0; i < pieces.length; i++) {
+                const piece = pieces[i];
                 const pieceWidth = piece.width;
                 const pieceHeight = piece.height;
                 
-                // Check if piece fits in current row
-                if (currentX + pieceWidth > sheetWidth) {
-                    // Move to next row
-                    currentY += rowHeight + kerf;
-                    currentX = 0;
-                    rowHeight = 0;
-                }
-                
-                // Check if piece fits in sheet
-                if (currentY + pieceHeight <= sheetHeight && currentX + pieceWidth <= sheetWidth) {
+                // Try to fit piece in current row
+                if (currentX + pieceWidth <= sheetWidth && currentY + pieceHeight <= sheetHeight) {
                     layout.push({
                         ...piece,
                         x: currentX,
@@ -427,50 +466,149 @@
                     
                     currentX += pieceWidth + kerf;
                     rowHeight = Math.max(rowHeight, pieceHeight);
+                    continue;
                 }
-            });
+                
+                // Try to fit piece in next row
+                const nextRowY = currentY + rowHeight + kerf;
+                if (pieceWidth <= sheetWidth && nextRowY + pieceHeight <= sheetHeight) {
+                    layout.push({
+                        ...piece,
+                        x: 0,
+                        y: nextRowY,
+                        width: pieceWidth,
+                        height: pieceHeight
+                    });
+                    
+                    currentX = pieceWidth + kerf;
+                    currentY = nextRowY;
+                    rowHeight = pieceHeight;
+                    continue;
+                }
+                
+                // Piece doesn't fit, try rotation if it makes sense
+                if (pieceHeight <= sheetWidth && pieceWidth <= sheetHeight) {
+                    // Check if rotated piece fits in current row
+                    if (currentX + pieceHeight <= sheetWidth && currentY + pieceWidth <= sheetHeight) {
+                        layout.push({
+                            ...piece,
+                            x: currentX,
+                            y: currentY,
+                            width: pieceHeight,
+                            height: pieceWidth,
+                            rotated: true
+                        });
+                        
+                        currentX += pieceHeight + kerf;
+                        rowHeight = Math.max(rowHeight, pieceWidth);
+                        continue;
+                    }
+                    
+                    // Check if rotated piece fits in next row
+                    if (pieceHeight <= sheetWidth && nextRowY + pieceWidth <= sheetHeight) {
+                        layout.push({
+                            ...piece,
+                            x: 0,
+                            y: nextRowY,
+                            width: pieceHeight,
+                            height: pieceWidth,
+                            rotated: true
+                        });
+                        
+                        currentX = pieceHeight + kerf;
+                        currentY = nextRowY;
+                        rowHeight = pieceWidth;
+                        continue;
+                    }
+                }
+                
+                // Piece doesn't fit at all, stop packing this sheet
+                break;
+            }
             
-            return layout;
+            return {
+                pieces: layout,
+                usedArea: layout.reduce((sum, piece) => sum + (piece.width * piece.height), 0),
+                totalArea: sheetWidth * sheetHeight
+            };
         }
         
-        function displayCuttingDiagram(layout, sheetWidth, sheetHeight) {
-            const diagram = document.getElementById('cuttingDiagram');
-            const scale = Math.min(800 / sheetWidth, 600 / sheetHeight);
+        function displayMultipleSheets(sheets, sheetWidth, sheetHeight) {
+            const container = document.getElementById('sheetsContainer');
+            container.innerHTML = '';
             
-            diagram.style.width = (sheetWidth * scale) + 'px';
-            diagram.style.height = (sheetHeight * scale) + 'px';
-            diagram.innerHTML = '';
+            let totalUsedArea = 0;
+            let totalSheetArea = sheetWidth * sheetHeight * sheets.length;
+            let allPiecesCount = 0;
             
-            layout.forEach((piece, index) => {
-                const rect = document.createElement('div');
-                rect.className = 'piece-rect';
-                rect.style.left = (piece.x * scale) + 'px';
-                rect.style.top = (piece.y * scale) + 'px';
-                rect.style.width = (piece.width * scale) + 'px';
-                rect.style.height = (piece.height * scale) + 'px';
-                rect.textContent = `${piece.name}\n${piece.width}x${piece.height}`;
-                rect.title = `${piece.name}: ${piece.width} x ${piece.height} mm`;
+            sheets.forEach((sheet, index) => {
+                const sheetDiv = document.createElement('div');
+                sheetDiv.className = 'sheet-container';
                 
-                // Color code by cabinet
-                const colors = ['rgba(70, 130, 180, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(144, 238, 144, 0.3)', 'rgba(255, 192, 203, 0.3)', 'rgba(221, 160, 221, 0.3)'];
-                rect.style.backgroundColor = colors[(piece.cabinet - 1) % colors.length];
+                const title = document.createElement('div');
+                title.className = 'sheet-title';
+                title.textContent = `Sheet ${index + 1} (${sheet.pieces.length} pieces)`;
+                sheetDiv.appendChild(title);
                 
-                diagram.appendChild(rect);
+                const diagram = document.createElement('div');
+                diagram.className = 'cutting-diagram';
+                const scale = Math.min(600 / sheetWidth, 400 / sheetHeight);
+                
+                diagram.style.width = (sheetWidth * scale) + 'px';
+                diagram.style.height = (sheetHeight * scale) + 'px';
+                
+                sheet.pieces.forEach((piece, pieceIndex) => {
+                    const rect = document.createElement('div');
+                    rect.className = 'piece-rect';
+                    rect.style.left = (piece.x * scale) + 'px';
+                    rect.style.top = (piece.y * scale) + 'px';
+                    rect.style.width = (piece.width * scale) + 'px';
+                    rect.style.height = (piece.height * scale) + 'px';
+                    
+                    const displayWidth = piece.rotated ? piece.height : piece.width;
+                    const displayHeight = piece.rotated ? piece.width : piece.height;
+                    const rotationNote = piece.rotated ? ' (R)' : '';
+                    
+                    rect.textContent = `${piece.name.replace(/Cabinet \d+ - /, '')}${rotationNote}`;
+                    rect.title = `${piece.name}: ${displayWidth} x ${displayHeight} mm${piece.rotated ? ' (Rotated)' : ''}`;
+                    
+                    // Color code by cabinet
+                    const colors = ['rgba(70, 130, 180, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(144, 238, 144, 0.3)', 'rgba(255, 192, 203, 0.3)', 'rgba(221, 160, 221, 0.3)'];
+                    rect.style.backgroundColor = colors[(piece.cabinet - 1) % colors.length];
+                    
+                    diagram.appendChild(rect);
+                });
+                
+                sheetDiv.appendChild(diagram);
+                
+                // Add sheet statistics
+                const stats = document.createElement('div');
+                stats.style.marginTop = '10px';
+                stats.style.fontSize = '12px';
+                stats.style.color = '#666';
+                const wastePercentage = ((sheet.totalArea - sheet.usedArea) / sheet.totalArea * 100).toFixed(1);
+                stats.innerHTML = `
+                    Used: ${sheet.usedArea.toLocaleString()} mm² | 
+                    Waste: ${wastePercentage}% | 
+                    Scale: 1:${Math.round(1/scale)}
+                `;
+                sheetDiv.appendChild(stats);
+                
+                container.appendChild(sheetDiv);
+                
+                totalUsedArea += sheet.usedArea;
+                allPiecesCount += sheet.pieces.length;
             });
             
-            // Calculate waste
-            const usedArea = layout.reduce((sum, piece) => sum + (piece.width * piece.height), 0);
-            const totalArea = sheetWidth * sheetHeight;
-            const wastePercentage = ((totalArea - usedArea) / totalArea * 100).toFixed(1);
-            const sheetsNeeded = Math.ceil(layout.length > 0 ? 1 : 0);
-            
+            // Overall statistics
+            const overallWaste = ((totalSheetArea - totalUsedArea) / totalSheetArea * 100).toFixed(1);
             document.getElementById('sheetInfo').innerHTML = `
-                <strong>Sheet Utilization (18mm pieces only):</strong><br>
-                Pieces that fit: ${layout.length}<br>
-                Used area: ${usedArea.toLocaleString()} mm²<br>
-                Total area: ${totalArea.toLocaleString()} mm²<br>
-                Waste: ${wastePercentage}% (${(totalArea - usedArea).toLocaleString()} mm²)<br>
-                Scale: 1:${Math.round(1/scale)}<br>
+                <strong>Overall Summary (18mm pieces only):</strong><br>
+                Total sheets needed: ${sheets.length}<br>
+                Total pieces placed: ${allPiecesCount}<br>
+                Total used area: ${totalUsedArea.toLocaleString()} mm²<br>
+                Total sheet area: ${totalSheetArea.toLocaleString()} mm²<br>
+                Overall waste: ${overallWaste}%<br>
                 <em>Note: 8mm back panels calculated separately</em>
             `;
         }

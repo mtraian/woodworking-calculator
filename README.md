@@ -1,35 +1,51 @@
-Cabinet Calculation Guide
-Always start from the exterior dimensions of the cabinet. All dimensions are calculated in cm:
+# Cabinet Calculation Guide
 
-H = cabinet height
-L = cabinet width
-A = cabinet depth
+## Basic Principles
 
-In all calculations, H must appear as the first dimension. The back panel is always 8mm thick.
-Standard Cabinet Components:
+Always start from the exterior dimensions of the cabinet. All dimensions are calculated in **cm**.
 
-2 side panels: H x A
-1 base panel: (L-3.6) x A
-2 crossbars: (L-3.6) x 10 cm
-1 back panel: (H-2) x (L-2)
+### Dimension Variables
+- **H** = cabinet height
+- **L** = cabinet width  
+- **A** = cabinet depth
 
-Door Dimensions:
-Door size is calculated using the formula: (H-0.3) x (L-0.3)
-If the cabinet is wider than 60 cm ⇒ the cabinet has two doors
-Standard Dimensions:
+> **Important:** In all calculations, H must appear as the first dimension. The back panel is always 8mm thick.
 
-H = 72 cm
-A = 56 cm
+## Standard Cabinet Components
 
-Calculation Values:
+### Panel Specifications
+- **2 side panels:** H × A
+- **1 base panel:** (L-3.6) × A
+- **2 crossbars:** (L-3.6) × 10 cm
+- **1 back panel:** (H-2) × (L-2)
 
-Deduction value for interior elements (base and crossbars): 3.6
-Deduction value for back panel: 2
-Deduction value for doors: 0.3
-Crossbar width: 10
+### Door Dimensions
+Door size is calculated using the formula: **(H-0.3) × (L-0.3)**
 
-Not yet available : Corner Cabinet Specifications:
+**Door Configuration Rule:**
+- If the cabinet is wider than 60 cm → the cabinet has two doors
 
-Fixed panel, standard corner cabinet - Width: 45
-Small closure pieces for standard corner cabinet: 10
-Standard corner cabinet door - Width: 45
+## Standard Dimensions
+
+| Component | Dimension |
+|-----------|-----------|
+| H (Height) | 72 cm |
+| A (Depth) | 56 cm |
+
+## Calculation Values
+
+| Element | Deduction Value |
+|---------|-----------------|
+| Interior elements (base and crossbars) | 3.6 |
+| Back panel | 2 |
+| Doors | 0.3 |
+| Crossbar width | 10 |
+
+## Corner Cabinet Specifications
+
+> **Status:** Not yet available
+
+### Planned Specifications
+- **Fixed panel, standard corner cabinet** - Width: 45
+- **Small closure pieces for standard corner cabinet:** 10
+- **Standard corner cabinet door** - Width: 45

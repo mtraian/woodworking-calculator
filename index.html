@@ -259,8 +259,13 @@
         
         <div id="results" class="results">
             <div class="summary-section">
-                <h2>Material Summary</h2>
+                <h2>Wood Sheet Materials (18mm & 8mm)</h2>
                 <div id="materialSummary"></div>
+            </div>
+            
+            <div class="summary-section">
+                <h2>Door Materials (Separate)</h2>
+                <div id="doorSummary"></div>
             </div>
             
             <div class="summary-section">
@@ -351,17 +356,23 @@
                 });
             });
             
+            // Separate pieces into sheet materials and doors
+            const sheetPieces = allPieces.filter(p => !p.name.includes('Door'));
+            const doorPieces = allPieces.filter(p => p.name.includes('Door'));
+            
             // Group pieces by dimensions and thickness for summary
-            const materialSummary = groupPiecesByDimensions(allPieces);
+            const materialSummary = groupPiecesByDimensions(sheetPieces);
+            const doorSummary = groupPiecesByDimensions(doorPieces);
             const edgeBandingSummary = calculateEdgeBanding(allPieces);
             
             // Display everything
             displayMaterialSummary(materialSummary);
+            displayDoorSummary(doorSummary);
             displayEdgeBandingSummary(edgeBandingSummary);
             displayAllPieces(allPieces);
             
-            // Optimize layout for 18mm pieces across multiple sheets
-            const pieces18mm = allPieces.filter(p => p.thickness === 18);
+            // Optimize layout for 18mm sheet pieces only (no doors)
+            const pieces18mm = sheetPieces.filter(p => p.thickness === 18);
             const sheets = optimizeMultipleSheets(pieces18mm, 2800, 2070, kerf);
             displayMultipleSheets(sheets, 2800, 2070);
             
@@ -380,36 +391,61 @@
                     { 
                         name: `Cabinet ${cabinetIndex} - Side Panel 1${suffix}`, 
                         width: H, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
-                        edgeBanding: { front: A, back: A, top: H, bottom: H } // All 4 edges
+                        edgeBanding: { 
+                            front: A,    // front edge (depth)
+                            back: A,     // back edge (depth)
+                            top: H,      // top edge (height)  
+                            bottom: H    // bottom edge (height)
+                        } // All 4 edges - Total: 2*A + 2*H
                     },
                     { 
                         name: `Cabinet ${cabinetIndex} - Side Panel 2${suffix}`, 
                         width: H, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
-                        edgeBanding: { front: A, back: A, top: H, bottom: H } // All 4 edges
+                        edgeBanding: { 
+                            front: A,    // front edge (depth)
+                            back: A,     // back edge (depth)
+                            top: H,      // top edge (height)
+                            bottom: H    // bottom edge (height)
+                        } // All 4 edges - Total: 2*A + 2*H
                     },
                     { 
                         name: `Cabinet ${cabinetIndex} - Base Panel${suffix}`, 
                         width: L - 36, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
-                        edgeBanding: { front: L - 36, back: 0, top: 0, bottom: 0 } // Only front edge visible
+                        edgeBanding: { 
+                            front: A,      // front edge (depth)
+                            back: A,       // back edge (depth)
+                            top: 0,        // no top edge
+                            bottom: 0      // no bottom edge
+                        } // Only front and back - Total: 2*A
                     },
                     { 
                         name: `Cabinet ${cabinetIndex} - Crossbar 1${suffix}`, 
                         width: L - 36, height: 100, thickness: 18, quantity: 1, cabinet: cabinetIndex,
-                        edgeBanding: { front: L - 36, back: 0, top: 0, bottom: 0 } // Only front edge visible
+                        edgeBanding: { 
+                            front: L - 36,  // long side (width)
+                            back: L - 36,   // long side (width)
+                            top: 0,         // no short side
+                            bottom: 0       // no short side
+                        } // Only long sides - Total: 2*(L-36)
                     },
                     { 
                         name: `Cabinet ${cabinetIndex} - Crossbar 2${suffix}`, 
                         width: L - 36, height: 100, thickness: 18, quantity: 1, cabinet: cabinetIndex,
-                        edgeBanding: { front: L - 36, back: 0, top: 0, bottom: 0 } // Only front edge visible
+                        edgeBanding: { 
+                            front: L - 36,  // long side (width)
+                            back: L - 36,   // long side (width)
+                            top: 0,         // no short side
+                            bottom: 0       // no short side
+                        } // Only long sides - Total: 2*(L-36)
                     },
                     { 
                         name: `Cabinet ${cabinetIndex} - Back Panel${suffix}`, 
                         width: H - 20, height: L - 20, thickness: 8, quantity: 1, cabinet: cabinetIndex,
-                        edgeBanding: { front: 0, back: 0, top: 0, bottom: 0 } // Usually no edge banding on back panels
+                        edgeBanding: { front: 0, back: 0, top: 0, bottom: 0 } // No edge banding on back panels
                     }
                 );
                 
-                // Add doors
+                // Add doors (separate material)
                 const doorWidth = Math.floor((L - 3) / (L > 600 ? 2 : 1));
                 const doorHeight = H - 3;
                 const doorCount = L > 600 ? 2 : 1;
@@ -422,12 +458,50 @@
                         thickness: 18,
                         quantity: 1,
                         cabinet: cabinetIndex,
-                        edgeBanding: { front: doorHeight * 2 + doorWidth * 2, back: 0, top: 0, bottom: 0 } // All 4 edges of door
+                        edgeBanding: { 
+                            front: doorHeight * 2 + doorWidth * 2, // All 4 edges perimeter
+                            back: 0, 
+                            top: 0, 
+                            bottom: 0 
+                        }
                     });
                 }
             }
             
             return pieces;
+        }
+        
+        function displayDoorSummary(doorSummary) {
+            const summaryDiv = document.getElementById('doorSummary');
+            summaryDiv.innerHTML = '';
+            
+            if (Object.keys(doorSummary).length === 0) {
+                summaryDiv.innerHTML = '<p style="color: #666; font-style: italic;">No doors in current configuration</p>';
+                return;
+            }
+            
+            let totalDoorArea = 0;
+            
+            Object.entries(doorSummary).forEach(([key, data]) => {
+                const div = document.createElement('div');
+                div.className = 'piece-summary';
+                div.innerHTML = `
+                    <span>${data.dimensions} (Door material)</span>
+                    <span>${data.count} pieces (${(data.area * data.count / 1000000).toFixed(2)} m²)</span>
+                `;
+                summaryDiv.appendChild(div);
+                totalDoorArea += data.area * data.count;
+            });
+            
+            // Add total
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'piece-summary';
+            totalDiv.style.fontWeight = 'bold';
+            totalDiv.innerHTML = `
+                <span>Total Door Material:</span>
+                <span>${(totalDoorArea / 1000000).toFixed(2)} m²</span>
+            `;
+            summaryDiv.appendChild(totalDiv);
         }
         
         function calculateEdgeBanding(pieces) {

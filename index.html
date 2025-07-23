@@ -12,6 +12,29 @@
             padding: 20px;
             background-color: #f5f5f5;
         }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #d4a574;
+        }
+        .logo {
+            height: 80px;
+            margin-right: 20px;
+            border-radius: 8px;
+        }
+        .header-text h1 {
+            margin: 0 0 5px 0;
+            color: #8B4513;
+            font-size: 28px;
+        }
+        .subtitle {
+            margin: 0;
+            color: #666;
+            font-style: italic;
+            font-size: 14px;
+        }
         .container {
             background: white;
             padding: 20px;
@@ -170,11 +193,33 @@
         .piece-summary:last-child {
             border-bottom: none;
         }
+        .edge-summary {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .edge-summary:last-child {
+            border-bottom: none;
+        }
+        .edge-total {
+            font-weight: bold;
+            background-color: #e9ecef;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Cabinet Material Calculator & Sheet Optimizer</h1>
+        <div class="header">
+            <img src="https://traianno.gr/wp-content/uploads/2016/12/cropped-IMG_0113.png" alt="Traianno Logo" class="logo">
+            <div class="header-text">
+                <h1>Cabinet Material Calculator & Sheet Optimizer</h1>
+                <p class="subtitle">Professional woodworking calculation tool</p>
+            </div>
+        </div>
         
         <div class="input-group">
             <label for="kerf">Kerf (cut width) - mm:</label>
@@ -216,6 +261,11 @@
             <div class="summary-section">
                 <h2>Material Summary</h2>
                 <div id="materialSummary"></div>
+            </div>
+            
+            <div class="summary-section">
+                <h2>Edge Banding Requirements</h2>
+                <div id="edgeBandingSummary"></div>
             </div>
             
             <h2>All Required Pieces</h2>
@@ -303,9 +353,11 @@
             
             // Group pieces by dimensions and thickness for summary
             const materialSummary = groupPiecesByDimensions(allPieces);
+            const edgeBandingSummary = calculateEdgeBanding(allPieces);
             
             // Display everything
             displayMaterialSummary(materialSummary);
+            displayEdgeBandingSummary(edgeBandingSummary);
             displayAllPieces(allPieces);
             
             // Optimize layout for 18mm pieces across multiple sheets
@@ -323,13 +375,38 @@
             for (let i = 0; i < quantity; i++) {
                 const suffix = quantity > 1 ? ` #${i + 1}` : '';
                 
+                // Define which edges need banding for each piece type
                 pieces.push(
-                    { name: `Cabinet ${cabinetIndex} - Side Panel 1${suffix}`, width: H, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex },
-                    { name: `Cabinet ${cabinetIndex} - Side Panel 2${suffix}`, width: H, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex },
-                    { name: `Cabinet ${cabinetIndex} - Base Panel${suffix}`, width: L - 36, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex },
-                    { name: `Cabinet ${cabinetIndex} - Crossbar 1${suffix}`, width: L - 36, height: 100, thickness: 18, quantity: 1, cabinet: cabinetIndex },
-                    { name: `Cabinet ${cabinetIndex} - Crossbar 2${suffix}`, width: L - 36, height: 100, thickness: 18, quantity: 1, cabinet: cabinetIndex },
-                    { name: `Cabinet ${cabinetIndex} - Back Panel${suffix}`, width: H - 20, height: L - 20, thickness: 8, quantity: 1, cabinet: cabinetIndex }
+                    { 
+                        name: `Cabinet ${cabinetIndex} - Side Panel 1${suffix}`, 
+                        width: H, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { front: A, back: A, top: H, bottom: H } // All 4 edges
+                    },
+                    { 
+                        name: `Cabinet ${cabinetIndex} - Side Panel 2${suffix}`, 
+                        width: H, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { front: A, back: A, top: H, bottom: H } // All 4 edges
+                    },
+                    { 
+                        name: `Cabinet ${cabinetIndex} - Base Panel${suffix}`, 
+                        width: L - 36, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { front: L - 36, back: 0, top: 0, bottom: 0 } // Only front edge visible
+                    },
+                    { 
+                        name: `Cabinet ${cabinetIndex} - Crossbar 1${suffix}`, 
+                        width: L - 36, height: 100, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { front: L - 36, back: 0, top: 0, bottom: 0 } // Only front edge visible
+                    },
+                    { 
+                        name: `Cabinet ${cabinetIndex} - Crossbar 2${suffix}`, 
+                        width: L - 36, height: 100, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { front: L - 36, back: 0, top: 0, bottom: 0 } // Only front edge visible
+                    },
+                    { 
+                        name: `Cabinet ${cabinetIndex} - Back Panel${suffix}`, 
+                        width: H - 20, height: L - 20, thickness: 8, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { front: 0, back: 0, top: 0, bottom: 0 } // Usually no edge banding on back panels
+                    }
                 );
                 
                 // Add doors
@@ -344,12 +421,60 @@
                         height: doorWidth,
                         thickness: 18,
                         quantity: 1,
-                        cabinet: cabinetIndex
+                        cabinet: cabinetIndex,
+                        edgeBanding: { front: doorHeight * 2 + doorWidth * 2, back: 0, top: 0, bottom: 0 } // All 4 edges of door
                     });
                 }
             }
             
             return pieces;
+        }
+        
+        function calculateEdgeBanding(pieces) {
+            const edgeBanding = {
+                18: 0, // 18mm edge banding length
+                8: 0   // 8mm edge banding length (if needed)
+            };
+            
+            pieces.forEach(piece => {
+                if (piece.edgeBanding) {
+                    const totalLength = piece.edgeBanding.front + piece.edgeBanding.back + 
+                                      piece.edgeBanding.top + piece.edgeBanding.bottom;
+                    edgeBanding[piece.thickness] += totalLength;
+                }
+            });
+            
+            return edgeBanding;
+        }
+        
+        function displayEdgeBandingSummary(edgeBanding) {
+            const summaryDiv = document.getElementById('edgeBandingSummary');
+            summaryDiv.innerHTML = '';
+            
+            let totalLength = 0;
+            
+            Object.entries(edgeBanding).forEach(([thickness, length]) => {
+                if (length > 0) {
+                    const div = document.createElement('div');
+                    div.className = 'edge-summary';
+                    div.innerHTML = `
+                        <span>Edge banding ${thickness}mm:</span>
+                        <span>${(length / 1000).toFixed(2)} meters (${length.toLocaleString()} mm)</span>
+                    `;
+                    summaryDiv.appendChild(div);
+                    totalLength += length;
+                }
+            });
+            
+            // Add total
+            if (totalLength > 0) {
+                const totalDiv = document.createElement('div');
+                totalDiv.className = 'edge-total';
+                totalDiv.innerHTML = `
+                    <strong>Total Edge Banding: ${(totalLength / 1000).toFixed(2)} meters</strong>
+                `;
+                summaryDiv.appendChild(totalDiv);
+            }
         }
         
         function groupPiecesByDimensions(pieces) {
@@ -423,6 +548,12 @@
             const sheets = [];
             let remainingPieces = [...pieces];
             
+            // Add unique IDs to pieces to avoid duplicate issues
+            remainingPieces = remainingPieces.map((piece, index) => ({
+                ...piece,
+                uniqueId: `${piece.name}_${index}_${Math.random().toString(36).substr(2, 9)}`
+            }));
+            
             // Sort pieces by area descending for better packing
             remainingPieces.sort((a, b) => {
                 const areaA = a.width * a.height;
@@ -431,99 +562,132 @@
                 return b.height - a.height;
             });
             
-            while (remainingPieces.length > 0) {
-                const sheet = packSheet(remainingPieces, sheetWidth, sheetHeight, kerf);
-                sheets.push(sheet);
+            let attempts = 0;
+            const maxAttempts = 10; // Safety limit
+            
+            while (remainingPieces.length > 0 && attempts < maxAttempts) {
+                attempts++;
                 
-                // Remove pieces that were packed from remaining pieces
-                const packedPieceNames = sheet.pieces.map(p => p.name);
-                remainingPieces = remainingPieces.filter(p => !packedPieceNames.includes(p.name));
+                try {
+                    const sheet = packSheetImproved(remainingPieces, sheetWidth, sheetHeight, kerf);
+                    
+                    if (sheet.pieces.length === 0) {
+                        console.warn("No pieces could be placed on sheet", attempts);
+                        break;
+                    }
+                    
+                    sheets.push(sheet);
+                    
+                    // Remove pieces that were packed
+                    const packedIds = sheet.pieces.map(p => p.uniqueId);
+                    const beforeCount = remainingPieces.length;
+                    remainingPieces = remainingPieces.filter(p => !packedIds.includes(p.uniqueId));
+                    
+                    console.log(`Sheet ${attempts}: Placed ${sheet.pieces.length} pieces, ${remainingPieces.length} remaining`);
+                    
+                    // Safety check - if no pieces were removed, break to avoid infinite loop
+                    if (remainingPieces.length === beforeCount) {
+                        console.warn("No progress made, stopping to avoid infinite loop");
+                        break;
+                    }
+                    
+                } catch (error) {
+                    console.error("Error in sheet packing:", error);
+                    break;
+                }
             }
             
             return sheets;
         }
         
-        function packSheet(pieces, sheetWidth, sheetHeight, kerf) {
+        function packSheetImproved(pieces, sheetWidth, sheetHeight, kerf) {
             const layout = [];
-            let currentX = 0;
-            let currentY = 0;
-            let rowHeight = 0;
             
-            for (let i = 0; i < pieces.length; i++) {
-                const piece = pieces[i];
-                const pieceWidth = piece.width;
-                const pieceHeight = piece.height;
+            // Start with the full sheet as available space
+            let availableSpaces = [{
+                x: 0, 
+                y: 0, 
+                width: sheetWidth, 
+                height: sheetHeight
+            }];
+            
+            // Try to place each piece
+            for (let pieceIndex = 0; pieceIndex < pieces.length; pieceIndex++) {
+                const piece = pieces[pieceIndex];
+                let placed = false;
                 
-                // Try to fit piece in current row
-                if (currentX + pieceWidth <= sheetWidth && currentY + pieceHeight <= sheetHeight) {
-                    layout.push({
-                        ...piece,
-                        x: currentX,
-                        y: currentY,
-                        width: pieceWidth,
-                        height: pieceHeight
-                    });
+                // Try both orientations (normal and rotated)
+                const orientations = [
+                    { width: piece.width, height: piece.height, rotated: false },
+                    { width: piece.height, height: piece.width, rotated: true }
+                ];
+                
+                // Try each orientation
+                for (let orientationIndex = 0; orientationIndex < orientations.length && !placed; orientationIndex++) {
+                    const orientation = orientations[orientationIndex];
                     
-                    currentX += pieceWidth + kerf;
-                    rowHeight = Math.max(rowHeight, pieceHeight);
-                    continue;
-                }
-                
-                // Try to fit piece in next row
-                const nextRowY = currentY + rowHeight + kerf;
-                if (pieceWidth <= sheetWidth && nextRowY + pieceHeight <= sheetHeight) {
-                    layout.push({
-                        ...piece,
-                        x: 0,
-                        y: nextRowY,
-                        width: pieceWidth,
-                        height: pieceHeight
-                    });
-                    
-                    currentX = pieceWidth + kerf;
-                    currentY = nextRowY;
-                    rowHeight = pieceHeight;
-                    continue;
-                }
-                
-                // Piece doesn't fit, try rotation if it makes sense
-                if (pieceHeight <= sheetWidth && pieceWidth <= sheetHeight) {
-                    // Check if rotated piece fits in current row
-                    if (currentX + pieceHeight <= sheetWidth && currentY + pieceWidth <= sheetHeight) {
-                        layout.push({
-                            ...piece,
-                            x: currentX,
-                            y: currentY,
-                            width: pieceHeight,
-                            height: pieceWidth,
-                            rotated: true
-                        });
+                    // Try to fit in each available space
+                    for (let spaceIndex = 0; spaceIndex < availableSpaces.length; spaceIndex++) {
+                        const space = availableSpaces[spaceIndex];
                         
-                        currentX += pieceHeight + kerf;
-                        rowHeight = Math.max(rowHeight, pieceWidth);
-                        continue;
-                    }
-                    
-                    // Check if rotated piece fits in next row
-                    if (pieceHeight <= sheetWidth && nextRowY + pieceWidth <= sheetHeight) {
-                        layout.push({
-                            ...piece,
-                            x: 0,
-                            y: nextRowY,
-                            width: pieceHeight,
-                            height: pieceWidth,
-                            rotated: true
-                        });
-                        
-                        currentX = pieceHeight + kerf;
-                        currentY = nextRowY;
-                        rowHeight = pieceWidth;
-                        continue;
+                        // Check if piece fits in this space (with some tolerance for floating point)
+                        if (orientation.width <= space.width + 0.1 && orientation.height <= space.height + 0.1) {
+                            // Place the piece
+                            layout.push({
+                                ...piece,
+                                x: space.x,
+                                y: space.y,
+                                width: orientation.width,
+                                height: orientation.height,
+                                rotated: orientation.rotated
+                            });
+                            
+                            // Remove the used space
+                            availableSpaces.splice(spaceIndex, 1);
+                            
+                            // Create new available spaces from the remaining area
+                            const newSpaces = [];
+                            
+                            // Right space (if there's room to the right)
+                            if (space.x + orientation.width + kerf < space.x + space.width) {
+                                newSpaces.push({
+                                    x: space.x + orientation.width + kerf,
+                                    y: space.y,
+                                    width: space.width - orientation.width - kerf,
+                                    height: orientation.height
+                                });
+                            }
+                            
+                            // Bottom space (full width of original space)
+                            if (space.y + orientation.height + kerf < space.y + space.height) {
+                                newSpaces.push({
+                                    x: space.x,
+                                    y: space.y + orientation.height + kerf,
+                                    width: space.width,
+                                    height: space.height - orientation.height - kerf
+                                });
+                            }
+                            
+                            // Add new spaces, filtering out invalid ones
+                            newSpaces.forEach(newSpace => {
+                                if (newSpace.width > 0 && newSpace.height > 0) {
+                                    availableSpaces.push(newSpace);
+                                }
+                            });
+                            
+                            // Sort spaces by area (largest first) for better placement
+                            availableSpaces.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+                            
+                            placed = true;
+                            break;
+                        }
                     }
                 }
                 
-                // Piece doesn't fit at all, stop packing this sheet
-                break;
+                // If piece couldn't be placed, stop trying more pieces for this sheet
+                if (!placed) {
+                    break;
+                }
             }
             
             return {

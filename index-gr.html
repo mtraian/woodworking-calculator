@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabinet Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #d4a574;
+        }
+        .logo {
+            height: 80px;
+            margin-right: 20px;
+            border-radius: 8px;
+        }
+        .header-text h1 {
+            margin: 0 0 5px 0;
+            color: #8B4513;
+            font-size: 28px;
+        }
+        .subtitle {
+            margin: 0;
+            color: #666;
+            font-style: italic;
+            font-size: 14px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            display: none;
+        }
+        .piece-list {
+            margin-top: 20px;
+        }
+        .piece-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .piece-item:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .sheet-container {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .sheet-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .cutting-diagram {
+            margin-top: 10px;
+            border: 2px solid #333;
+            position: relative;
+            background-color: #f8f8f8;
+        }
+        .pieces-not-fitting {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+        }
+        .pieces-not-fitting h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .pieces-not-fitting ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .piece-rect {
+            position: absolute;
+            border: 1px solid #333;
+            background-color: rgba(70, 130, 180, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .piece-rect:nth-child(even) {
+            background-color: rgba(255, 165, 0, 0.3);
+        }
+        .sheet-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+        .dimensions {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .cabinet-config {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .config-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        .remove-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+        .config-dimensions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .config-dimensions .input-group {
+            margin-bottom: 10px;
+        }
+        .summary-section {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .piece-summary {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #ccc;
+        }
+        .piece-summary:last-child {
+            border-bottom: none;
+        }
+        .edge-summary {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .edge-summary:last-child {
+            border-bottom: none;
+        }
+        .edge-total {
+            font-weight: bold;
+            background-color: #e9ecef;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://traianno.gr/wp-content/uploads/2016/12/cropped-IMG_0113.png" alt="Traianno Logo" class="logo">
+            <div class="header-text">
+                <h1>Υπολογιστής Υλικών Ντουλάπας & Βελτιστοποίηση Φύλλων</h1>
+                <p class="subtitle">Επαγγελματικό εργαλείο υπολογισμού ξυλουργικής</p>
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label for="kerf">Kerf (cut width) - mm:</label>
+            <input type="number" id="kerf" value="3" min="1" max="10">
+        </div>
+        
+        <h2>Cabinet Configurations</h2>
+        <div id="cabinetConfigs">
+            <div class="cabinet-config">
+                <div class="config-header">
+                    <h3>Ντουλάπα 1</h3>
+                    <button onclick="removeCabinet(0)" class="remove-btn">Αφαίρεση</button>
+                </div>
+                <div class="config-dimensions">
+                    <div class="input-group">
+                        <label>Ύψος (H) - mm:</label>
+                        <input type="number" class="height-input" value="720" min="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Πλάτος (L) - mm:</label>
+                        <input type="number" class="width-input" value="600" min="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Βάθος (A) - mm:</label>
+                        <input type="number" class="depth-input" value="560" min="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Ποσότητα:</label>
+                        <input type="number" class="quantity-input" value="1" min="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button onclick="addCabinet()">Προσθήκη Άλλης Ντουλάπας</button>
+        <button onclick="calculateAllCabinets()">Υπολογισμός Όλων των Ντουλαπών</button>
+        
+        <div id="results" class="results">
+            <div class="summary-section">
+                <h2>Υλικά Ξύλινων Φύλλων (18mm & 8mm)</h2>
+                <div id="materialSummary"></div>
+            </div>
+            
+            <div class="summary-section">
+                <h2>Υλικά Πορτών (Ξεχωριστά)</h2>
+                <div id="doorSummary"></div>
+            </div>
+            
+            <div class="summary-section">
+                <h2>Απαιτήσεις Ταινίας Ακμών</h2>
+                <div id="edgeBandingSummary"></div>
+            </div>
+            
+            <h2>Όλα τα Απαιτούμενα Κομμάτια</h2>
+            <div id="pieceList" class="piece-list"></div>
+            
+            <h2>Διατάξεις Φύλλων (2800 x 2070 mm)</h2>
+            <div id="sheetsContainer"></div>
+            <div id="sheetInfo" class="sheet-info"></div>
+        </div>
+    </div>
+
+    <script>
+        let cabinetCount = 1;
+        
+        function addCabinet() {
+            const configsDiv = document.getElementById('cabinetConfigs');
+            const newConfig = document.createElement('div');
+            newConfig.className = 'cabinet-config';
+            newConfig.innerHTML = `
+                <div class="config-header">
+                    <h3>Ντουλάπα ${cabinetCount + 1}</h3>
+                    <button onclick="removeCabinet(${cabinetCount})" class="remove-btn">Αφαίρεση</button>
+                </div>
+                <div class="config-dimensions">
+                    <div class="input-group">
+                        <label>Ύψος (H) - mm:</label>
+                        <input type="number" class="height-input" value="720" min="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Πλάτος (L) - mm:</label>
+                        <input type="number" class="width-input" value="600" min="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Βάθος (A) - mm:</label>
+                        <input type="number" class="depth-input" value="560" min="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Ποσότητα:</label>
+                        <input type="number" class="quantity-input" value="1" min="1">
+                    </div>
+                </div>
+            `;
+            configsDiv.appendChild(newConfig);
+            cabinetCount++;
+        }
+        
+        function removeCabinet(index) {
+            const configs = document.querySelectorAll('.cabinet-config');
+            if (configs.length > 1) {
+                configs[index].remove();
+                updateCabinetNumbers();
+            }
+        }
+        
+        function updateCabinetNumbers() {
+            const configs = document.querySelectorAll('.cabinet-config');
+            configs.forEach((config, index) => {
+                config.querySelector('h3').textContent = `Ντουλάπα ${index + 1}`;
+                config.querySelector('.remove-btn').onclick = () => removeCabinet(index);
+            });
+        }
+        
+        function calculateAllCabinets() {
+            const kerf = parseInt(document.getElementById('kerf').value);
+            const configs = document.querySelectorAll('.cabinet-config');
+            
+            let allPieces = [];
+            let cabinetDetails = [];
+            
+            configs.forEach((config, index) => {
+                const H = parseInt(config.querySelector('.height-input').value);
+                const L = parseInt(config.querySelector('.width-input').value);
+                const A = parseInt(config.querySelector('.depth-input').value);
+                const quantity = parseInt(config.querySelector('.quantity-input').value);
+                
+                const cabinetPieces = calculateCabinetPieces(H, L, A, quantity, index + 1);
+                allPieces = allPieces.concat(cabinetPieces);
+                
+                cabinetDetails.push({
+                    index: index + 1,
+                    H, L, A, quantity,
+                    pieces: cabinetPieces
+                });
+            });
+            
+            // Separate pieces into sheet materials and doors
+            const sheetPieces = allPieces.filter(p => !p.name.includes('Door'));
+            const doorPieces = allPieces.filter(p => p.name.includes('Door'));
+            
+            // Group pieces by dimensions and thickness for summary
+            const materialSummary = groupPiecesByDimensions(sheetPieces);
+            const doorSummary = groupPiecesByDimensions(doorPieces);
+            const edgeBandingSummary = calculateEdgeBanding(allPieces);
+            
+            // Display everything
+            displayMaterialSummary(materialSummary);
+            displayDoorSummary(doorSummary);
+            displayEdgeBandingSummary(edgeBandingSummary);
+            displayAllPieces(allPieces);
+            
+            // Optimize layout for 18mm sheet pieces only (no doors)
+            const pieces18mm = sheetPieces.filter(p => p.thickness === 18);
+            const sheets = optimizeMultipleSheets(pieces18mm, 2800, 2070, kerf);
+            displayMultipleSheets(sheets, 2800, 2070);
+            
+            // Show results
+            document.getElementById('results').style.display = 'block';
+        }
+        
+        function calculateCabinetPieces(H, L, A, quantity, cabinetIndex) {
+            const pieces = [];
+            
+            for (let i = 0; i < quantity; i++) {
+                const suffix = quantity > 1 ? ` #${i + 1}` : '';
+                
+                // Define which edges need banding for each piece type
+                pieces.push(
+                    { 
+                        name: `Ντουλάπα ${cabinetIndex} - Πλευρικό Πάνελ 1${suffix}`, 
+                        width: H, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { 
+                            front: A,    // front edge (depth)
+                            back: A,     // back edge (depth)
+                            top: H,      // top edge (height)  
+                            bottom: H    // bottom edge (height)
+                        } // All 4 edges - Total: 2*A + 2*H
+                    },
+                    { 
+                        name: `Ντουλάπα ${cabinetIndex} - Πλευρικό Πάνελ 2${suffix}`, 
+                        width: H, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { 
+                            front: A,    // front edge (depth)
+                            back: A,     // back edge (depth)
+                            top: H,      // top edge (height)
+                            bottom: H    // bottom edge (height)
+                        } // All 4 edges - Total: 2*A + 2*H
+                    },
+                    { 
+                        name: `Ντουλάπα ${cabinetIndex} - Πάνελ Βάσης${suffix}`, 
+                        width: L - 36, height: A, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { 
+                            front: A,      // front edge (depth)
+                            back: A,       // back edge (depth)
+                            top: 0,        // no top edge
+                            bottom: 0      // no bottom edge
+                        } // Only front and back - Total: 2*A
+                    },
+                    { 
+                        name: `Ντουλάπα ${cabinetIndex} - Διαγώνιος 1${suffix}`, 
+                        width: L - 36, height: 100, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { 
+                            front: L - 36,  // long side (width)
+                            back: L - 36,   // long side (width)
+                            top: 0,         // no short side
+                            bottom: 0       // no short side
+                        } // Only long sides - Total: 2*(L-36)
+                    },
+                    { 
+                        name: `Ντουλάπα ${cabinetIndex} - Διαγώνιος 2${suffix}`, 
+                        width: L - 36, height: 100, thickness: 18, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { 
+                            front: L - 36,  // long side (width)
+                            back: L - 36,   // long side (width)
+                            top: 0,         // no short side
+                            bottom: 0       // no short side
+                        } // Only long sides - Total: 2*(L-36)
+                    },
+                    { 
+                        name: `Ντουλάπα ${cabinetIndex} - Πίσω Πάνελ${suffix}`, 
+                        width: H - 20, height: L - 20, thickness: 8, quantity: 1, cabinet: cabinetIndex,
+                        edgeBanding: { front: 0, back: 0, top: 0, bottom: 0 } // No edge banding on back panels
+                    }
+                );
+                
+                // Add doors (separate material)
+                const doorWidth = Math.floor((L - 3) / (L > 600 ? 2 : 1));
+                const doorHeight = H - 3;
+                const doorCount = L > 600 ? 2 : 1;
+                
+                for (let j = 0; j < doorCount; j++) {
+                    pieces.push({
+                        name: `Ντουλάπα ${cabinetIndex} - Πόρτα ${j + 1}${suffix}`,
+                        width: doorHeight,
+                        height: doorWidth,
+                        thickness: 18,
+                        quantity: 1,
+                        cabinet: cabinetIndex,
+                        edgeBanding: { 
+                            front: doorHeight * 2 + doorWidth * 2, // All 4 edges perimeter
+                            back: 0, 
+                            top: 0, 
+                            bottom: 0 
+                        }
+                    });
+                }
+            }
+            
+            return pieces;
+        }
+        
+        function displayDoorSummary(doorSummary) {
+            const summaryDiv = document.getElementById('doorSummary');
+            summaryDiv.innerHTML = '';
+            
+            if (Object.keys(doorSummary).length === 0) {
+                summaryDiv.innerHTML = '<p style="color: #666; font-style: italic;">Δεν υπάρχουν πόρτες στην τρέχουσα διαμόρφωση</p>';
+                return;
+            }
+            
+            let totalDoorArea = 0;
+            
+            Object.entries(doorSummary).forEach(([key, data]) => {
+                const div = document.createElement('div');
+                div.className = 'piece-summary';
+                div.innerHTML = `
+                    <span>${data.dimensions} (Υλικό πόρτας)</span>
+                    <span>${data.count} κομμάτια (${(data.area * data.count / 1000000).toFixed(2)} m²)</span>
+                `;
+                summaryDiv.appendChild(div);
+                totalDoorArea += data.area * data.count;
+            });
+            
+            // Add total
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'piece-summary';
+            totalDiv.style.fontWeight = 'bold';
+            totalDiv.innerHTML = `
+                <span>Σύνολο Υλικού Πορτών:</span>
+                <span>${(totalDoorArea / 1000000).toFixed(2)} m²</span>
+            `;
+            summaryDiv.appendChild(totalDiv);
+        }
+        
+        function calculateEdgeBanding(pieces) {
+            const edgeBanding = {
+                18: 0, // 18mm edge banding length
+                8: 0   // 8mm edge banding length (if needed)
+            };
+            
+            pieces.forEach(piece => {
+                if (piece.edgeBanding) {
+                    const totalLength = piece.edgeBanding.front + piece.edgeBanding.back + 
+                                      piece.edgeBanding.top + piece.edgeBanding.bottom;
+                    edgeBanding[piece.thickness] += totalLength;
+                }
+            });
+            
+            return edgeBanding;
+        }
+        
+        function displayEdgeBandingSummary(edgeBanding) {
+            const summaryDiv = document.getElementById('edgeBandingSummary');
+            summaryDiv.innerHTML = '';
+            
+            let totalLength = 0;
+            
+            Object.entries(edgeBanding).forEach(([thickness, length]) => {
+                if (length > 0) {
+                    const div = document.createElement('div');
+                    div.className = 'edge-summary';
+                    div.innerHTML = `
+                        <span>Ταινία ακμών ${thickness}mm:</span>
+                        <span>${(length / 1000).toFixed(2)} μέτρα (${length.toLocaleString()} mm)</span>
+                    `;
+                    summaryDiv.appendChild(div);
+                    totalLength += length;
+                }
+            });
+            
+            // Add total
+            if (totalLength > 0) {
+                const totalDiv = document.createElement('div');
+                totalDiv.className = 'edge-total';
+                totalDiv.innerHTML = `
+                    <strong>Σύνολο Ταινίας Ακμών: ${(totalLength / 1000).toFixed(2)} μέτρα</strong>
+                `;
+                summaryDiv.appendChild(totalDiv);
+            }
+        }
+        
+        function groupPiecesByDimensions(pieces) {
+            const grouped = {};
+            
+            pieces.forEach(piece => {
+                const key = `${piece.width}x${piece.height}x${piece.thickness}`;
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        dimensions: `${piece.width} x ${piece.height} x ${piece.thickness}mm`,
+                        count: 0,
+                        area: piece.width * piece.height
+                    };
+                }
+                grouped[key].count++;
+            });
+            
+            return grouped;
+        }
+        
+        function displayMaterialSummary(summary) {
+            const summaryDiv = document.getElementById('materialSummary');
+            summaryDiv.innerHTML = '';
+            
+            let total18mmArea = 0;
+            let total8mmArea = 0;
+            
+            Object.entries(summary).forEach(([key, data]) => {
+                const div = document.createElement('div');
+                div.className = 'piece-summary';
+                div.innerHTML = `
+                    <span>${data.dimensions}</span>
+                    <span>${data.count} κομμάτια (${(data.area * data.count / 1000000).toFixed(2)} m²)</span>
+                `;
+                summaryDiv.appendChild(div);
+                
+                if (key.includes('x18')) {
+                    total18mmArea += data.area * data.count;
+                } else if (key.includes('x8')) {
+                    total8mmArea += data.area * data.count;
+                }
+            });
+            
+            // Add totals
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'piece-summary';
+            totalDiv.style.fontWeight = 'bold';
+            totalDiv.innerHTML = `
+                <span>Σύνολο Απαιτούμενου Υλικού:</span>
+                <span>18mm: ${(total18mmArea / 1000000).toFixed(2)} m² | 8mm: ${(total8mmArea / 1000000).toFixed(2)} m²</span>
+            `;
+            summaryDiv.appendChild(totalDiv);
+        }
+        
+        function displayAllPieces(pieces) {
+            const pieceList = document.getElementById('pieceList');
+            pieceList.innerHTML = '';
+            
+            pieces.forEach(piece => {
+                const div = document.createElement('div');
+                div.className = 'piece-item';
+                div.innerHTML = `
+                    <span>${piece.name}</span>
+                    <span>${piece.width} x ${piece.height} x ${piece.thickness}mm</span>
+                `;
+                pieceList.appendChild(div);
+            });
+        }
+        
+        function optimizeMultipleSheets(pieces, sheetWidth, sheetHeight, kerf) {
+            const sheets = [];
+            let remainingPieces = [...pieces];
+            
+            // Add unique IDs to pieces to avoid duplicate issues
+            remainingPieces = remainingPieces.map((piece, index) => ({
+                ...piece,
+                uniqueId: `${piece.name}_${index}_${Math.random().toString(36).substr(2, 9)}`
+            }));
+            
+            // Sort pieces by area descending for better packing
+            remainingPieces.sort((a, b) => {
+                const areaA = a.width * a.height;
+                const areaB = b.width * b.height;
+                if (areaB !== areaA) return areaB - areaA;
+                return b.height - a.height;
+            });
+            
+            let attempts = 0;
+            const maxAttempts = 10; // Safety limit
+            
+            while (remainingPieces.length > 0 && attempts < maxAttempts) {
+                attempts++;
+                
+                try {
+                    const sheet = packSheetImproved(remainingPieces, sheetWidth, sheetHeight, kerf);
+                    
+                    if (sheet.pieces.length === 0) {
+                        console.warn("No pieces could be placed on sheet", attempts);
+                        break;
+                    }
+                    
+                    sheets.push(sheet);
+                    
+                    // Remove pieces that were packed
+                    const packedIds = sheet.pieces.map(p => p.uniqueId);
+                    const beforeCount = remainingPieces.length;
+                    remainingPieces = remainingPieces.filter(p => !packedIds.includes(p.uniqueId));
+                    
+                    console.log(`Sheet ${attempts}: Placed ${sheet.pieces.length} pieces, ${remainingPieces.length} remaining`);
+                    
+                    // Safety check - if no pieces were removed, break to avoid infinite loop
+                    if (remainingPieces.length === beforeCount) {
+                        console.warn("No progress made, stopping to avoid infinite loop");
+                        break;
+                    }
+                    
+                } catch (error) {
+                    console.error("Error in sheet packing:", error);
+                    break;
+                }
+            }
+            
+            return sheets;
+        }
+        
+        function packSheetImproved(pieces, sheetWidth, sheetHeight, kerf) {
+            const layout = [];
+            
+            // Start with the full sheet as available space
+            let availableSpaces = [{
+                x: 0, 
+                y: 0, 
+                width: sheetWidth, 
+                height: sheetHeight
+            }];
+            
+            // Try to place each piece
+            for (let pieceIndex = 0; pieceIndex < pieces.length; pieceIndex++) {
+                const piece = pieces[pieceIndex];
+                let placed = false;
+                
+                // Try both orientations (normal and rotated)
+                const orientations = [
+                    { width: piece.width, height: piece.height, rotated: false },
+                    { width: piece.height, height: piece.width, rotated: true }
+                ];
+                
+                // Try each orientation
+                for (let orientationIndex = 0; orientationIndex < orientations.length && !placed; orientationIndex++) {
+                    const orientation = orientations[orientationIndex];
+                    
+                    // Try to fit in each available space
+                    for (let spaceIndex = 0; spaceIndex < availableSpaces.length; spaceIndex++) {
+                        const space = availableSpaces[spaceIndex];
+                        
+                        // Check if piece fits in this space (with some tolerance for floating point)
+                        if (orientation.width <= space.width + 0.1 && orientation.height <= space.height + 0.1) {
+                            // Place the piece
+                            layout.push({
+                                ...piece,
+                                x: space.x,
+                                y: space.y,
+                                width: orientation.width,
+                                height: orientation.height,
+                                rotated: orientation.rotated
+                            });
+                            
+                            // Remove the used space
+                            availableSpaces.splice(spaceIndex, 1);
+                            
+                            // Create new available spaces from the remaining area
+                            const newSpaces = [];
+                            
+                            // Right space (if there's room to the right)
+                            if (space.x + orientation.width + kerf < space.x + space.width) {
+                                newSpaces.push({
+                                    x: space.x + orientation.width + kerf,
+                                    y: space.y,
+                                    width: space.width - orientation.width - kerf,
+                                    height: orientation.height
+                                });
+                            }
+                            
+                            // Bottom space (full width of original space)
+                            if (space.y + orientation.height + kerf < space.y + space.height) {
+                                newSpaces.push({
+                                    x: space.x,
+                                    y: space.y + orientation.height + kerf,
+                                    width: space.width,
+                                    height: space.height - orientation.height - kerf
+                                });
+                            }
+                            
+                            // Add new spaces, filtering out invalid ones
+                            newSpaces.forEach(newSpace => {
+                                if (newSpace.width > 0 && newSpace.height > 0) {
+                                    availableSpaces.push(newSpace);
+                                }
+                            });
+                            
+                            // Sort spaces by area (largest first) for better placement
+                            availableSpaces.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+                            
+                            placed = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // If piece couldn't be placed, stop trying more pieces for this sheet
+                if (!placed) {
+                    break;
+                }
+            }
+            
+            return {
+                pieces: layout,
+                usedArea: layout.reduce((sum, piece) => sum + (piece.width * piece.height), 0),
+                totalArea: sheetWidth * sheetHeight
+            };
+        }
+        
+        function displayMultipleSheets(sheets, sheetWidth, sheetHeight) {
+            const container = document.getElementById('sheetsContainer');
+            container.innerHTML = '';
+            
+            let totalUsedArea = 0;
+            let totalSheetArea = sheetWidth * sheetHeight * sheets.length;
+            let allPiecesCount = 0;
+            
+            sheets.forEach((sheet, index) => {
+                const sheetDiv = document.createElement('div');
+                sheetDiv.className = 'sheet-container';
+                
+                const title = document.createElement('div');
+                title.className = 'sheet-title';
+                title.textContent = `Φύλλο ${index + 1} (${sheet.pieces.length} κομμάτια)`;
+                sheetDiv.appendChild(title);
+                
+                const diagram = document.createElement('div');
+                diagram.className = 'cutting-diagram';
+                const scale = Math.min(600 / sheetWidth, 400 / sheetHeight);
+                
+                diagram.style.width = (sheetWidth * scale) + 'px';
+                diagram.style.height = (sheetHeight * scale) + 'px';
+                
+                sheet.pieces.forEach((piece, pieceIndex) => {
+                    const rect = document.createElement('div');
+                    rect.className = 'piece-rect';
+                    rect.style.left = (piece.x * scale) + 'px';
+                    rect.style.top = (piece.y * scale) + 'px';
+                    rect.style.width = (piece.width * scale) + 'px';
+                    rect.style.height = (piece.height * scale) + 'px';
+                    
+                    const displayWidth = piece.rotated ? piece.height : piece.width;
+                    const displayHeight = piece.rotated ? piece.width : piece.height;
+                    const rotationNote = piece.rotated ? ' (R)' : '';
+                    
+                    rect.textContent = `${piece.name.replace(/Ντουλάπα \d+ - /, '')}${rotationNote}`;
+                    rect.title = `${piece.name}: ${displayWidth} x ${displayHeight} mm${piece.rotated ? ' (Περιστραμμένο)' : ''}`;
+                    
+                    // Color code by cabinet
+                    const colors = ['rgba(70, 130, 180, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(144, 238, 144, 0.3)', 'rgba(255, 192, 203, 0.3)', 'rgba(221, 160, 221, 0.3)'];
+                    rect.style.backgroundColor = colors[(piece.cabinet - 1) % colors.length];
+                    
+                    diagram.appendChild(rect);
+                });
+                
+                sheetDiv.appendChild(diagram);
+                
+                // Add sheet statistics
+                const stats = document.createElement('div');
+                stats.style.marginTop = '10px';
+                stats.style.fontSize = '12px';
+                stats.style.color = '#666';
+                const wastePercentage = ((sheet.totalArea - sheet.usedArea) / sheet.totalArea * 100).toFixed(1);
+                stats.innerHTML = `
+                    Χρησιμοποιημένο: ${sheet.usedArea.toLocaleString()} mm² | 
+                    Απώλεια: ${wastePercentage}% | 
+                    Κλίμακα: 1:${Math.round(1/scale)}
+                `;
+                sheetDiv.appendChild(stats);
+                
+                container.appendChild(sheetDiv);
+                
+                totalUsedArea += sheet.usedArea;
+                allPiecesCount += sheet.pieces.length;
+            });
+            
+            // Overall statistics
+            const overallWaste = ((totalSheetArea - totalUsedArea) / totalSheetArea * 100).toFixed(1);
+            document.getElementById('sheetInfo').innerHTML = `
+                <strong>Συνολική Περίληψη (μόνο κομμάτια 18mm):</strong><br>
+                Συνολικά φύλλα που χρειάζονται: ${sheets.length}<br>
+                Συνολικά κομμάτια που τοποθετήθηκαν: ${allPiecesCount}<br>
+                Συνολική χρησιμοποιημένη επιφάνεια: ${totalUsedArea.toLocaleString()} mm²<br>
+                Συνολική επιφάνεια φύλλων: ${totalSheetArea.toLocaleString()} mm²<br>
+                Συνολική απώλεια: ${overallWaste}%<br>
+                <em>Σημείωση: Τα πίσω πάνελ 8mm υπολογίζονται ξεχωριστά</em>
+            `;
+        }
+    </script>
+</body>
+</html>
